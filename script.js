@@ -16,37 +16,82 @@ document.addEventListener("DOMContentLoaded", function () {
         .getElementById("recreationComplex")
         .value.trim();
 
+      console.log("User Input:", recreationComplex);
+
       if (!recreationComplex) {
         document.getElementById("results").innerHTML =
           "<p>Please enter a complex name.</p>";
         return;
       }
 
-      const apiUrl = `https://data.winnipeg.ca/resource/bmi4-vvs2.json?$where=lower(recreation_complex) LIKE lower('%25${encodeURIComponent(
-        recreationComplex
-      )}%25')&$order=recreation_complex ASC&$limit=100`;
+      const apiUrl = `https://data.winnipeg.ca/resource/bmi4-vvs2.json?$where=upper(complex_name) like upper('%${recreationComplex}%')&$order=complex_name DESC&$limit=100`;
 
-      fetch(apiUrl)
-        .then((response) => response.json())
-        .then((data) => {
-          let resultsDiv = document.getElementById("results");
-          resultsDiv.innerHTML = "";
+      const encodedURL = encodeURI(apiUrl);
+      console.log("API URL:", encodedURL);
 
-          if (data.length === 0) {
-            resultsDiv.innerHTML = "<p>No parks found.</p>";
-          } else {
-            let output = "<ul>";
-            data.forEach((complex) => {
-              output += `<li><strong>${complex.recreation_complex}</strong> - ${complex.neighbourhood}</li>`;
-            });
-            output += "</ul>";
-            resultsDiv.innerHTML = output;
+      fetch(encodedURL)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
           }
+          return response.json();
         })
+        .then((data) => {
+          console.log("API Response:", data); // Debugging
+          console.log("Recreation Complex:", recreationComplex);
+          console.log("API URL:", encodedURL);
+
+          console.log("API Response:", data); // Full response
+          console.log("Data Length:", data.length); // Check array length
+
+          console.log("First Object in API Response:", data[0]); // Check structure
+          console.log("All Data:", data);
+          let resultsDiv = document.getElementById("results");
+          resultsDiv.innerHTML = ""; // Clear previous results
+
+          if (!Array.isArray(data) || data.length === 0) {
+            resultsDiv.innerHTML = "<p>No recreation complexes found.</p>";
+            return;
+          }
+
+          let output = "<ul>";
+          data.forEach((complex) => {
+            console.log("Checking object:", complex); // Debugging
+
+            output += `
+                <li>
+                    <strong>${
+                      complex.complex_name
+                        ? complex.complex_name
+                        : "No Name Available"
+                    }</strong><br>
+                     Address: ${
+                       complex.address
+                         ? complex.address
+                         : "No address available"
+                     }<br>
+                     Arena: ${complex.arena ? complex.arena : "false"}<br>
+                     Community Centre: ${
+                       complex.community_centre
+                         ? complex.community_centre
+                         : "false"
+                     }<br>
+                     Indoor Pool: ${
+                       complex.indoor_pool ? complex.indoor_pool : "false"
+                     }<br>
+                </li>
+                <hr>
+            `;
+          });
+
+          output += "</ul>";
+          resultsDiv.innerHTML = output;
+        })
+
         .catch((error) => {
           console.error("Error fetching data:", error);
           document.getElementById("results").innerHTML =
-            "<p>Eror retrieving data.</p>";
+            "<p>Error retrieving data.</p>";
         });
     });
 });
